@@ -1,3 +1,34 @@
+```javascript
+enyo.kind({
+   name: "MyControl",
+    foo: "",
+    fooChanged: function(inOld) {    // Called when foo changes
+        // Do something with "this.foo"
+    }
+});
+
+tapHandler: function() {
+    this.set("foo", "bar");      // Causes fooChanged() to be called
+}
+
+enyo.kind({
+    name: "MyControl",
+    publicProperty: 10
+    _protectedProperty: 42,
+    observers: [
+        { method: "watchValues", path: ["publicProperty", "_protectedProperty"] }
+    ],
+    watchValues: function(previous, current, property) {  // Called when either property changes
+        // Do something with "this.publicProperty" and "this._protectedProperty"
+    }
+});
+```
+
+
+
+# test end
+
+
 ### Looking for the issue tracker?  
 It's moved to [https://enyojs.atlassian.net](https://enyojs.atlassian.net).
 
