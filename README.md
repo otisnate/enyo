@@ -11,6 +11,7 @@ tapHandler: function() {
     this.set("foo", "bar");      // Causes fooChanged() to be called
 }
 
+
 enyo.kind({
     name: "MyControl",
     publicProperty: 10
@@ -23,6 +24,155 @@ enyo.kind({
     }
 });
 ```
+
+```javascript
+var object = new enyo.Object({value: true});
+var observer = function (was, is) {
+	enyo.log('value was "' + was + '" but now it is "' + is + '"');
+};
+
+object.observe('value', observer);
+object.set('value', false); // -> value was "true" but now it is "false"
+object.unobserve('value', observer);
+object.set('value', true); // no output because there is no observer
+
+observer: function(previous, current, property) {
+    this.log();
+},
+
+tapHandler: function() {
+    this.observe('foo', this.bindSafely('observer'));
+    this.set("foo", "bar");      // Causes fooChanged() to be called
+}  
+
+enyo.kind({
+    name: "MyValueSlider",
+    components: [
+        {kind: "moon.Slider", name: "slider"},
+        {kind: "enyo.Control", name: "label"}
+    ],
+    bindings: [
+        {from: "$.slider.value", to: "$.label.content"}
+    ]
+});
+
+enyo.kind({
+    name: "MyValueSlider",
+    sliderValue: 10,    // Initial value of slider
+    components: [
+        {kind: "moon.Slider", name:"slider"},
+        {kind: "enyo.Control", name:"label"}
+    ],
+    bindings: [
+        {from: "sliderValue", to: "$.slider.value", oneWay: false},    // two-way binding
+        {from: "$.slider.value", to: "$.label.content"}                // one-way binding
+    ]
+});
+
+ enyo.kind({
+    name: "MyValueSlider",
+    components: [
+        {kind: "moon.Slider", name:"slider", min: 0, max: 1},
+        {kind: "enyo.Control", name:"label"}
+    ],
+    bindings: [
+        {from: "$.slider.value", to: "$.label.content", transform: function(val) {
+            return "The slider value is " + Math.round(val * 100) + "%";
+        }}
+    ]
+});
+
+{from: "$.slider.value", to: "$.input.value", oneWay:false, transform: function(val, dir) {
+    if (dir == 1) { //source (`from`) setting value for target (`to`)
+        return (val * 100) + "%";
+    } else if (dir == 2) { //target (`to`) setting value for source (`from`)
+        return parseInt(val) / 100;
+    }
+}}
+
+
+enyo.kind({
+    name: "MyForecastControl",
+    weather: "sunny",
+    city: "San Francisco",
+    computed: [
+        { method: "forecast", path: ["weather", "city"] }    // "forecast" method depends on properties in list
+    ],
+    forecast: function() {
+        return "It's always " + this.get("weather") + " in " + this.get("city")
+    }
+}); 
+    
+enyo.kind({
+    name: "MyForecastControl",
+    weather: "sunny",
+    city: "San Francisco",
+    components: [
+        {kind: "enyo.Control", name: "forecastLabel"}
+    ],
+    bindings: {
+        {from: "forecast", to: "$.forecastLabel.content"}
+    },
+    computed: [
+        { method: "forecast", path: ["weather", "city"] }    // "forecast" method depends on properties in list
+    ],
+    forecast: function() {
+        return "It's always " + this.get("weather") + " in " + this.get("city")
+    }
+});
+    
+this.set("weather", "rainy");    
+// forecastLabel's content becomes "It's always rainy in San Francisco"
+
+this.set("city", "Seattle");
+// forecastLabel's content becomes "It's always rainy in Seattle"
+
+
+var myModel = new enyo.Model({
+    name: "Kevin", 
+    hometown: "San Francisco",
+    avatar: "/assets/kevin.png",
+    height: 6.0
+});
+
+myModel.get("name"); // returns "Kevin"
+myModel.set("name", "Bob");
+myModel.get("name"); // returns "Bob"
+
+
+var BaseModel = kind({
+    kind: null,
+    mixins: [ObserverSupport, ComputedSupport, BindingSupport, EventEmitter, StateSupport]
+});
+
+
+ enyo.kind({
+    name: "ContactView",
+    personModel: null,
+    components: [
+        {kind: "enyo.Image", name: "avatar"},
+        {kind: "enyo.Control", name: "nameLabel"},
+        {kind: "enyo.Control", name: "townLabel"}
+    ],
+    bindings: [
+        {from: "personModel.name", to: "$.nameLabel.content"},
+        {from: "personModel.hometown", to: "$.townLabel.content"},
+        {from: "personModel.avatar", to: "$.avatar.src"}
+    ]
+});
+
+var myModel = new enyo.Model({
+    name: "Kevin", 
+    hometown: "San Francisco",
+    avatar: "/assets/kevin.png",
+    height: 6.0
+});
+this.$.contactView.set("personModel", myModel);
+
+myModel.set("name", "Bob");        // The "nameLabel" component of the view will update
+```
+
+
 
 
 
