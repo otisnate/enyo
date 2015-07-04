@@ -172,8 +172,353 @@ this.$.contactView.set("personModel", myModel);
 myModel.set("name", "Bob");        // The "nameLabel" component of the view will update
 ```
 
+```javascript
+{
+    "user_id": 1234,
+    "name": "Kevin",
+    "department": {
+        "dept_id": 42,
+        "name": "Encabulator Marketing"
+    },
+    "manager": {
+        "user_id": 933,
+        "name": "Gray"
+    }
+}
+
+enyo.kind({
+    name: "ContactModel",
+    kind: "enyo.Model",
+    options: {parse: true},
+    source: "ajax",
+    getUrl: function() {
+        return "http://myservice.com/users/" + this.get("user_id");
+     },
+    parse: function(data) {
+        data.dept_id = data.department.dept_id;
+        data.dept_name = data.department.name;
+        delete data.department;
+        data.manager_id = data.manager.user_id;
+        data.manager_name = data.manager.name;
+        delete data.manager;
+        return data;
+    }
+});
 
 
+var myCollection = new enyo.Collection([
+    {
+        name: "Kevin", 
+        hometown: "San Francisco",
+        avatar: "/assets/kevin.png",
+        height: 6.0
+    },
+    {
+        name: "Gray", 
+        hometown: "San Jose",
+        avatar: "/assets/gray.png",
+        height: 6.1
+    },
+    {
+        name: "Cole", 
+        hometown: "Santa Clara",
+        avatar: "/assets/cole.png",
+        height: 5.9
+    }
+]);
+    
+myCollection.at(0);                 // returns enyo.Model instance for "Kevin" record
+myCollection.at(2).get("name");     // returns "Cole"
+
+
+myCollection.add({name: "Ben", hometown: "Austin"});
+myCollection.at(myCollection.length-1).get("name"); // returns "Ben"
+
+myCollection.add(new ContactModel({name: "Aaron", hometown: "San Mateo"}));
+myCollection.at(myCollection.length-1).get("name"); // returns "Aaron"
+
+
+// we treat all additions as an array of additions
+!(models instanceof Array) && (models = [models]);
+
+new enyo.AjaxSource({name: "ajax"}); 
+
+enyo.kind({
+    name: "MyContactCollection",
+    kind: "enyo.Collection",
+    model: "MyContactModel",
+    source: "ajax"              // optional
+});
+
+var myCollection = new MyContactCollection([
+    {
+        name: "Kevin", 
+        hometown: "San Francisco",
+        avatar: "/assets/kevin.png",
+        height: 6.0
+    },
+     ...
+]);
+
+myCollection.at(0);        // returns instance of "MyContactModel" for "Kevin" record
+
+
+new enyo.AjaxSource({name: "ajax"});
+
+enyo.kind({
+    name: "MyContactCollection",
+    kind: "enyo.Collection",
+    source: "ajax",
+    url: "http://myservice.com/users"
+});
+
+var myCollection = new MyContactCollection();
+myCollection.fetch();
+
+enyo.kind({
+    name: "MyContactCollection",
+    kind: "enyo.Collection",
+    source: "ajax",
+    url: "http://myservice.com/users"    // 무시됨
+    getUrl: function() {
+        return "http://myservice.com/departments/" + this.get("dept_id") + "/users";
+    }
+});
+
+new MyContactCollection({dept_id: 42});
+myCollection.fetch();
+
+{
+    "status": {
+        "error": "none",
+        "last_request": 1230394903
+    },
+    "result": [
+        {
+            "user_id": 1234,
+            "name": "Kevin",
+            "hometown": "San Francisco"
+            "avatar": "/images/kevin.png",
+            "height": 6.0
+        },
+        {
+            "user_id": 2345,
+            "name": "Gray",
+            "hometown": "San Jose"
+            "avatar": "/images/gray.png",
+            "height": 6.1
+        },
+        {
+            "user_id": 4567,
+            "name": "Cole",
+            "hometown": "Santa Clara"
+            "avatar": "/images/cole.png",
+            "height": 5.9
+        }
+    ]
+}
+
+enyo.kind({
+    name: "MyContactCollection",
+    kind: "enyo.Collection",
+    options: {parse: true},
+    source: "ajax",
+    url: "http://myservice.com/users"
+    parse: function(data) {        // incoming data contains {status:..., result:...}
+        return data.result;        // returned data contains {[{user_id:..., name:...}, {...}]}
+    }
+});
+
+new enyo.JsonpSource({name: "jsonp"});
+
+enyo.kind({
+    name: "MyContactCollection",
+    kind: "enyo.Collection",
+    model: "MyContactModel",
+    url: "http://myservice.com/users",
+    source: "jsonp"        // use jsonp source instead of ajax for fetching
+});
+
+enyo.kind({
+    name: "MyJsonpSource",
+    kind: "enyo.JsonpSource",
+    fetch: function(opts) {
+        opts.callbackName = "kallback";
+        this.inherited(arguments);
+    }
+});
+new MyJsonpSource({name: "mysource"});
+
+
+enyo.kind({
+    name: "MySource",
+    kind: "enyo.Source",
+    fetch: function(rec, opts) {
+        // implement code to fetch records
+        opts.success(data);        // call success callback to return data
+    },
+    commit: function(rec, opts) {
+        // implement code to store records
+        opts.success();        // call success callback
+    },
+    destroy: function(rec, opts) {
+        // implement code to destroy records
+        opts.success();        // call success callback
+    },
+    find: function(rec, opts) {
+        // implement code to find records
+        opts.success(data);        // call success callback to return data
+    },
+});
+new MySource({name: "mysource"});
+
+
+ enyo.kind({
+    name: "FacebookFeedSource",
+    kind: "enyo.Source",
+    fetch: function(rec, opts) {
+        var resource;
+        if (rec instanceof enyo.Collection) {
+            var user = rec.get("user") || "me";
+            resource = "/" + user + "/feed";
+        } else {
+            resource = "/" + rec.id;
+        }
+        FB.api(resource, function(response) {
+            if (response && !response.error) {
+                opts.success(response);
+            } else {
+                opts.fail(response);
+            }
+        });
+    },
+    commit: function(rec, opts) {
+        if (rec.isNew) {
+            FB.api("/me/feed", "POST", rec, function(response) {
+                if (response && !response.error) {
+                    opts.success(response);
+                } else {
+                    opts.fail(response);
+                }
+            });
+        } else {
+            opts.fail();  // FB only supports adding new posts, not editing
+        }
+    },
+    destroy: function(rec, opts) {
+        FB.api(rec.id, "DELETE", function(response) {
+            if (response && !response.error) {
+                opts.success(response);
+            } else {
+                opts.fail(response);
+            }
+        });
+    }
+});
+new FacebookFeedSource({name: "fbfeed"});
+
+
+enyo.kind(
+    name: 'enyo.LunaSource',
+    kind: 'enyo.Source',
+    noDefer: true,
+    fetch: function (model, opts) {
+        var Kind = ((opts.mock || model.mock) ? enyo.MockRequest : enyo.ServiceRequest);
+            ...
+            model.request.go(opts.params || model.params || {});
+    },
+    commit: function (model, opts) {
+        //redirect to fetch as for services they're basically the same
+        this.fetch(model, opts);
+    },
+    destroy: function (model, opts) {
+        var req = model.request || opts.request;
+        if(req && model.request.cancel) {
+            model.request.cancel();
+            model.request = undefined;
+        }
+    }
+});
+```
+
+```javascript
+enyo.kind({
+    name: "flickr.Source",
+    kind: "enyo.JsonpSource",
+    urlRoot: "https://api.flickr.com/services/rest/",
+    fetch: function(rec, opts) {
+        opts.callbackName = "jsoncallback";
+        opts.params = enyo.clone(rec.params);
+        opts.params.api_key = "2a21b46e58d207e4888e1ece0cb149a5";
+        opts.params.format = "json";
+        this.inherited(arguments);
+    }
+});
+
+new flickr.Source({name: "flickr"});
+
+enyo.kind({
+    name: "flickr.ImageModel",
+    kind: "enyo.Model",
+    options: { parse: true },
+    source: "flickr",
+    computed: [
+        {method: "thumbnail", path: ["farm", "server", "id", "secret"]},
+        {method: "original", path: ["farm", "server", "id", "secret"]}
+    ],
+    thumbnail: function() {
+        return "https://farm" + this.get("farm") +
+            ".static.flickr.com/" + this.get("server") +
+            "/" + this.get("id") + "_" + this.get("secret") + "_m.jpg";
+    },
+    original: function() {
+        return "https://farm" + this.get("farm") +
+            ".static.flickr.com/" + this.get("server") +
+            "/" + this.get("id") + "_" + this.get("secret") + ".jpg";
+    },
+    fetch: function(opts) {
+        this.params = {
+            method: "flickr.photos.getinfo",
+            photo_id: this.get("id")
+        };
+        return this.inherited(arguments);
+    },
+    parse: function(data) {
+        data = data.photo || data;
+        data.title = data.title._content || data.title;
+        data.username = data.owner && data.owner.realname;
+        data.taken = data.dates && data.dates.taken;
+        return data;
+    }
+});
+
+enyo.kind({
+    name: "flickr.SearchCollection",
+    kind: "enyo.Collection",
+    model: "flickr.ImageModel",
+    source: "flickr",
+    options: { parse: true },
+    published: {
+        searchText: null
+    },
+    searchTextChanged: function() {
+        this.empty({destroy: true});
+        this.fetch();
+    },
+    fetch: function(opts) {
+        this.params = {
+            method: "flickr.photos.search",
+            sort: "interestingness-desc",
+            per_page: 50,
+            text: this.searchText
+        };
+        return this.inherited(arguments);
+    },
+    parse: function(data) {
+        return data && data.photos && data.photos.photo;
+    }
+});
+```
 
 
 # test end
