@@ -521,6 +521,99 @@ enyo.kind({
 ```
 
 
+```javascript
+enyo.kind({
+	name: "flickr.Application",
+	kind: "enyo.Application",
+	view: "flickr.MainView"
+});
+
+enyo.kind({
+    name: "flickr.MainView",
+    create: function() {
+        this.inherited(arguments);
+        this.set("photos", new flickr.SearchCollection());
+        this.$.searchPanel.set("photos", this.photos);
+        this.$.slideshow.set("photos", this.photos);
+    }
+});
+
+enyo.kind({
+    name: "flickr.SearchPanel",
+    kind: "moon.Panel",
+    published: {
+        photos: null
+    },
+    handlers: {
+        onInputHeaderChange: "search"
+    },
+    bindings: [
+        {from: "photos", to: "$.resultList.collection"},
+        {from: "photos.status", to:"$.spinner.showing", transform: function(value) {
+            return this.photos.isBusy();
+        }
+    ],
+    search: function(inSender, inEvent) {
+        this.$.resultList.collection.set("searchText", inEvent.originator.get("value"));
+    }
+});
+
+enyo.kind({
+    name: "flickr.DetailPanel",
+    kind: "moon.Panel",
+    transitionFinished: function(inInfo) {
+        if (inInfo.from < inInfo.to) {
+            this.model.fetch();
+        }
+    }
+});
+
+
+
+module.exports = kind.singleton({
+    name: 'enyo.FluxDispatcher',
+    kind: CoreObject,
+    subscriptions: {},
+    subscribe: function(storeid, callback) {
+        ...
+        this.subscriptions[storeid][id] = callback;
+        return id;
+    },
+    notify: function(storeid, payload) {
+        var notifyQue = this.subscriptions[storeid];
+        for (var key in notifyQue) {
+            var callback = notifyQue[key];
+            if(callback) {
+                callback(payload);
+            }
+        }
+    }
+});
+    
+module.exports.Store = kind({
+    name: 'enyo.FluxStore',
+    kind: CoreObject,
+    constructor: kind.inherit(function (sup) {
+        return function () {
+            sup.apply(this, arguments);
+            //id the store with the dispatcher
+            this.id = FluxDispatcher.subscribe();
+            //if the store has an update method, subscribe to payload updates
+            if(this.update) 
+                this.updateID = FluxDispatcher.subscribe(this.id, bindSafely(this, this.update));
+        };
+    }),
+    ...
+});
+
+module.exports = kind.singleton({
+    name: 'flickr.Constants.Actions',
+    search: 'search'
+});
+    
+```
+
+
 # test end
 
 
